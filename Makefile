@@ -31,14 +31,16 @@ include $(DEVKITARM)/3ds_rules
 #     - icon.png
 #     - <libctru folder>/default_icon.png
 #---------------------------------------------------------------------------------
-TARGET		:=	$(notdir $(CURDIR))
-BUILD		:=	build
-SOURCES		:=	source
-DATA		:=	data
-INCLUDES	:=	include
-GRAPHICS	:=	gfx
-GFXBUILD	:=	$(BUILD)
-APP_AUTHOR  :=  jake_161
+TARGET			:=	$(notdir $(CURDIR))
+BUILD			:=	build
+SOURCES			:=	source
+DATA			:=	data
+INCLUDES		:=	include
+GRAPHICS		:=	gfx
+GFXBUILD		:=	$(BUILD)
+APP_AUTHOR  	:=  jake_161
+APP_TITLE   	:=  UDP Ctrlr
+APP_DESCRIPTION	:=  A simple UDP based input forwarding app
 #ROMFS		:=	romfs
 #GFXBUILD	:=	$(ROMFS)/gfx
 
