@@ -1,24 +1,28 @@
-/*
-	Circle Pad example made by Aurelio Mannara for libctru
-	Please refer to https://github.com/devkitPro/libctru/blob/master/libctru/include/3ds/services/hid.h for more information
-	This code was modified for the last time on: 12/13/2014 2:20 UTC+1
-
-	This wouldn't be possible without the amazing work done by:
-	-Smealum
-	-fincs
-	-WinterMute
-	-yellows8
-	-plutoo
-	-mtheall
-	-Many others who worked on 3DS and I'm surely forgetting about
-*/
-
-#include <3ds.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <malloc.h>
+#include <errno.h>
+#include <stdarg.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <3ds.h>
+
+#define SOC_ALIGN       0x1000
+#define SOC_BUFFERSIZE  0x100000
+
+static u32 *SOC_buffer = NULL;
+s32 sock = -1;
+
+__attribute__((format(printf,1,2)))
+void failExit(const char *fmt, ...);
 
 int main(int argc, char **argv)
 {
-	//Matrix containing the name of each key. Useful for printing when a key is pressed
 	char keysNames[32][32] = {
 		"KEY_A", "KEY_B", "KEY_SELECT", "KEY_START",
 		"KEY_DRIGHT", "KEY_DLEFT", "KEY_DUP", "KEY_DDOWN",
@@ -30,44 +34,91 @@ int main(int argc, char **argv)
 		"KEY_CPAD_RIGHT", "KEY_CPAD_LEFT", "KEY_CPAD_UP", "KEY_CPAD_DOWN"
 	};
 
-	// Initialize services
-	gfxInitDefault();
+    int ret;
+    struct sockaddr_in server, client;
+    socklen_t clientlen = sizeof(client);
+    char temp[1024];
+    int client_ready = 0; // flag when client has connected
 
-	//Initialize console on top screen. Using NULL as the second argument tells the console library to use the internal console structure as current one
-	consoleInit(GFX_TOP, NULL);
+    SOC_buffer = (u32*)memalign(SOC_ALIGN, SOC_BUFFERSIZE);
+    if(!SOC_buffer) failExit("\x1b[1;1Hmemalign failed");
 
-	u32 kDownOld = 0, kHeldOld = 0, kUpOld = 0; //In these variables there will be information about keys detected in the previous frame
-	printf("\x1b[1;1HPress Start to exit.");
-	printf("\x1b[2;1HCirclePad position:");
-	printf("\x1b[10;1HYo what's poppin' homie.");
+    if((ret = socInit(SOC_buffer, SOC_BUFFERSIZE)) != 0){
+        failExit("\x1b[1;1HsocInit: 0x%08X", (unsigned int)ret);
+	}
 
-	// Main loop
-	while (aptMainLoop())
-	{
-		//Scan all the inputs. This should be done once for each frame
-		hidScanInput();
+    sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if(sock < 0) failExit("\x1b[1;1Hsocket: %d %s", errno, strerror(errno));
 
-		//hidKeysDown returns information about which buttons have been just pressed (and they weren't in the previous frame)
+    memset(&server, 0, sizeof(server));
+    server.sin_family = AF_INET;
+    server.sin_port = htons(5000);       // server port
+    server.sin_addr.s_addr = INADDR_ANY;
+
+    if(bind(sock, (struct sockaddr *)&server, sizeof(server))){
+        failExit("\x1b[1;1Hbind: %d %s", errno, strerror(errno));
+	}
+
+    printf("\x1b[1;1H3DS UDP server running on port %d", ntohs(server.sin_port));
+	printf("\x1b[29;16HPress B to reset client.");
+	printf("\x1b[30;16HPress Start to exit.");
+    gfxInitDefault();
+    consoleInit(GFX_TOP, NULL);
+
+	u32 kDownOld = 0, kHeldOld = 0, kUpOld = 0;
+
+    while (aptMainLoop())
+    {
+		gspWaitForVBlank();
+        hidScanInput();
+        if(hidKeysDown() & KEY_START) break;
+        if(hidKeysDown() & KEY_SELECT) client_ready = 0;
+
+        circlePosition pos;
+        hidCircleRead(&pos);
+
+        // wait for a client packet if we don't know client yet
+        if(!client_ready) {
+            int n = recvfrom(sock, temp, sizeof(temp)-1, MSG_DONTWAIT,
+                             (struct sockaddr*)&client, &clientlen);
+            printf("\x1b[2;1HClient not connected");
+
+            if(n > 0) {
+                temp[n] = 0;
+                client_ready = 1;
+            }
+        }
+
 		u32 kDown = hidKeysDown();
-		//hidKeysHeld returns information about which buttons have are held down in this frame
-		u32 kHeld = hidKeysHeld();
-		//hidKeysUp returns information about which buttons have been just released
-		u32 kUp = hidKeysUp();
+        u32 kHeld = hidKeysHeld();
+        u32 kUp   = hidKeysUp();
 
-		if (kDown & KEY_START) break; // break in order to return to hbmenu
+        // send JSON to client if connected
+        if(client_ready) {
+            snprintf(temp, sizeof(temp),"{\"dx\":%d,\"dy\":%d,\"kDown\":%lu,\"kHeld\":%lu,\"kUp\":%lu}\n", pos.dx, pos.dy, kDown, kHeld, kUp);
+            sendto(sock, temp, strlen(temp), 0, (struct sockaddr*)&client, clientlen);
+        }
 
-		//Do the keys printing only if keys have changed
+        // display locally
+		
+        // consoleClear();
+		printf("\x1b[1;1H3DS UDP server running on port %d", ntohs(server.sin_port));
+		client_ready < 1 ? printf("\x1b[2;1HClient not connected") : printf("\x1b[2;1HClient connected from %s:%d", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
+		printf("\x1b[5;1HCirclePad position:");
+		printf("\x1b[6;1H%04d; %04d", pos.dx, pos.dy);
+		printf("\x1b[29;16HPress Select to reset client.");
+		printf("\x1b[30;16HPress Start to exit.");
+
 		if (kDown != kDownOld || kHeld != kHeldOld || kUp != kUpOld)
 		{
 			//Clear console
 			consoleClear();
 
 			//These two lines must be rewritten because we cleared the whole console
-			printf("\x1b[1;1HPress Start to exit.");
-			printf("\x1b[2;1HCirclePad position:");
-			printf("\x1b[10;1HYo what's poppin' homie.");
-
-			printf("\x1b[4;1H"); //Move the cursor to the fourth row because on the third one we'll write the circle pad position
+			printf("\x1b[5;1HCirclePad position:");
+			printf("\x1b[6;1H%04d; %04d", pos.dx, pos.dy);
+			printf("\x1b[7;1H");
+			
 
 			//Check if some of the keys are down, held or up
 			int i;
@@ -84,23 +135,28 @@ int main(int argc, char **argv)
 		kHeldOld = kHeld;
 		kUpOld = kUp;
 
-		circlePosition pos;
+        gfxFlushBuffers();
+        gfxSwapBuffers();
+    }
 
-		//Read the CirclePad position
-		hidCircleRead(&pos);
+    close(sock);
+    socExit();
+    gfxExit();
+    return 0;
+}
 
-		//Print the CirclePad position
-		printf("\x1b[3;1H%04d; %04d", pos.dx, pos.dy);
+void failExit(const char *fmt, ...) {
+    if(sock>0) close(sock);
 
-		// Flush and swap framebuffers
-		gfxFlushBuffers();
-		gfxSwapBuffers();
+    va_list ap;
+    va_start(ap, fmt);
+    vprintf(fmt, ap);
+    va_end(ap);
+    printf("\nPress B to exit\n");
 
-		//Wait for VBlank
-		gspWaitForVBlank();
-	}
-
-	// Exit services
-	gfxExit();
-	return 0;
+    while (aptMainLoop()) {
+        gspWaitForVBlank();
+        hidScanInput();
+        if(hidKeysDown() & KEY_B) exit(0);
+    }
 }
