@@ -93,12 +93,6 @@ int main(int argc, char **argv)
         u32 kHeld = hidKeysHeld();
         u32 kUp   = hidKeysUp();
 
-        // send JSON to client if connected
-        if(client_ready) {
-            snprintf(temp, sizeof(temp),"{\"dx\":%d,\"dy\":%d,\"kDown\":%lu,\"kHeld\":%lu,\"kUp\":%lu}\n", pos.dx, pos.dy, kDown, kHeld, kUp);
-            sendto(sock, temp, strlen(temp), 0, (struct sockaddr*)&client, clientlen);
-        }
-
         // display locally
 		
         // consoleClear();
@@ -111,6 +105,13 @@ int main(int argc, char **argv)
 
 		if (kDown != kDownOld || kHeld != kHeldOld || kUp != kUpOld)
 		{
+
+            // send JSON to client if connected
+            if(client_ready) {
+                snprintf(temp, sizeof(temp),"{\"dx\":%d,\"dy\":%d,\"kDown\":%lu,\"kHeld\":%lu,\"kUp\":%lu}\n", pos.dx, pos.dy, kDown, kHeld, kUp);
+                sendto(sock, temp, strlen(temp), 0, (struct sockaddr*)&client, clientlen);
+            }
+            
 			//Clear console
 			consoleClear();
 
