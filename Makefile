@@ -85,6 +85,8 @@ export VPATH	:=	$(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
 
 export DEPSDIR	:=	$(CURDIR)/$(BUILD)
 
+export VER_H := $(BUILD)/ver.h
+
 CFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
 CPPFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
 SFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
@@ -164,11 +166,19 @@ endif
 .PHONY: all clean
 
 #---------------------------------------------------------------------------------
-all: $(BUILD) $(GFXBUILD) $(DEPSDIR) $(ROMFS_T3XFILES) $(T3XHFILES)
+all: $(VER_H) $(BUILD) $(GFXBUILD) $(DEPSDIR) $(ROMFS_T3XFILES) $(T3XHFILES)
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 
 $(BUILD):
 	@mkdir -p $@
+
+.PHONY: $(VER_H)
+
+$(VER_H): | $(BUILD)
+	@echo "Generating version header..."
+	@echo '#pragma once' > $@
+	@echo '#define APP_VERSION "$(shell git describe --tags --dirty --always)"' >> $@
+	@echo 'ver. $(shell git describe --tags --dirty --always)'
 
 ifneq ($(GFXBUILD),$(BUILD))
 $(GFXBUILD):
@@ -201,7 +211,7 @@ $(OUTPUT).3dsx	:	$(OUTPUT).elf $(_3DSXDEPS)
 
 $(OFILES_SOURCES) : $(HFILES)
 
-$(OUTPUT).elf	:	$(OFILES)
+$(OUTPUT).elf	:	$(OFILES) $(VERSION_H)
 
 #---------------------------------------------------------------------------------
 # you need a rule like this for each extension you use as binary data

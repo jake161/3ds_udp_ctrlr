@@ -11,6 +11,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <3ds.h>
+#include <ver.h>
 
 #define SOC_ALIGN       0x1000
 #define SOC_BUFFERSIZE  0x100000
@@ -60,8 +61,10 @@ int main(int argc, char **argv)
 	}
 
     printf("\x1b[1;1H3DS UDP server running on port %d", ntohs(server.sin_port));
-	printf("\x1b[29;16HPress B to reset client.");
-	printf("\x1b[30;16HPress Start to exit.");
+	printf("\x1b[25;1HVer. %s", APP_VERSION);
+    printf("\x1b[29;17HStart   | exit");
+	printf("\x1b[30;17HSelect  | Reset Client");
+
     gfxInitDefault();
     consoleInit(GFX_TOP, NULL);
 
@@ -100,8 +103,9 @@ int main(int argc, char **argv)
 		client_ready < 1 ? printf("\x1b[2;1HClient not connected") : printf("\x1b[2;1HClient connected from %s:%d", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
 		printf("\x1b[5;1HCirclePad position:");
 		printf("\x1b[6;1H%04d; %04d", pos.dx, pos.dy);
-		printf("\x1b[29;16HPress Select to reset client.");
-		printf("\x1b[30;16HPress Start to exit.");
+        printf("\x1b[25;1HVer. %s", APP_VERSION);
+        printf("\x1b[29;17HStart   | exit");
+		printf("\x1b[30;17HSelect  | Reset Client");
 
 		if (kDown != kDownOld || kHeld != kHeldOld || kUp != kUpOld)
 		{
