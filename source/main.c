@@ -60,7 +60,10 @@ int main(int argc, char **argv)
         failExit("\x1b[1;1Hbind: %d %s", errno, strerror(errno));
 	}
 
-    printf("\x1b[1;1H3DS UDP server running on port %d", ntohs(server.sin_port));
+    u32 ip = gethostid();
+    printf("\x1b[1;1H3DS UDP server running on %lu.%lu.%lu.%lu:%d",
+            (ip) & 0xFF, (ip >> 8) & 0xFF, (ip >> 16) & 0xFF, (ip >> 24) & 0xFF,
+            ntohs(server.sin_port));
 	printf("\x1b[25;1HVer. %s", APP_VERSION);
     printf("\x1b[29;17HStart   | exit");
 	printf("\x1b[30;17HSelect  | Reset Client");
@@ -99,7 +102,9 @@ int main(int argc, char **argv)
         // display locally
 		
         // consoleClear();
-		printf("\x1b[1;1H3DS UDP server running on port %d", ntohs(server.sin_port));
+		printf("\x1b[1;1H3DS UDP server running on %lu.%lu.%lu.%lu:%d",
+            (ip) & 0xFF, (ip >> 8) & 0xFF, (ip >> 16) & 0xFF, (ip >> 24) & 0xFF,
+            ntohs(server.sin_port));
 		client_ready < 1 ? printf("\x1b[2;1HClient not connected") : printf("\x1b[2;1HClient connected from %s:%d", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
 		printf("\x1b[5;1HCirclePad position:");
 		printf("\x1b[6;1H%04d; %04d", pos.dx, pos.dy);
