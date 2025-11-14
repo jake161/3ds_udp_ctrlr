@@ -24,6 +24,9 @@ void failExit(const char *fmt, ...);
 
 int main(int argc, char **argv)
 {
+    gfxInitDefault();
+    consoleInit(GFX_TOP, NULL);
+
 	char keysNames[32][32] = {
 		"KEY_A", "KEY_B", "KEY_SELECT", "KEY_START",
 		"KEY_DRIGHT", "KEY_DLEFT", "KEY_DUP", "KEY_DDOWN",
@@ -49,7 +52,7 @@ int main(int argc, char **argv)
 	}
 
     sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if(sock < 0) failExit("\x1b[1;1Hsocket: %d %s", errno, strerror(errno));
+    if(sock < 0) failExit("\x1b[1;1Hsocket: %d %s\n\n -erm... is the wifi connected?\n", errno, strerror(errno));
 
     memset(&server, 0, sizeof(server));
     server.sin_family = AF_INET;
@@ -65,11 +68,8 @@ int main(int argc, char **argv)
             (ip) & 0xFF, (ip >> 8) & 0xFF, (ip >> 16) & 0xFF, (ip >> 24) & 0xFF,
             ntohs(server.sin_port));
 	printf("\x1b[25;1HVer. %s", APP_VERSION);
-    printf("\x1b[29;17HStart   | exit");
-	printf("\x1b[30;17HSelect  | Reset Client");
-
-    gfxInitDefault();
-    consoleInit(GFX_TOP, NULL);
+    printf("\x1b[29;17HStart+R+DOWN   | exit");
+	printf("\x1b[30;17HSelect+R+DOWN  | Reset Client");
 
 	u32 kDownOld = 0, kHeldOld = 0, kUpOld = 0;
 
@@ -77,8 +77,8 @@ int main(int argc, char **argv)
     {
 		gspWaitForVBlank();
         hidScanInput();
-        if(hidKeysDown() & KEY_START) break;
-        if(hidKeysDown() & KEY_SELECT) client_ready = 0;
+        if((hidKeysHeld() & (KEY_START | KEY_R | KEY_DDOWN)) == (KEY_START | KEY_R | KEY_DDOWN)) break;
+        if((hidKeysHeld() & (KEY_SELECT | KEY_R | KEY_DDOWN)) == (KEY_SELECT | KEY_R | KEY_DDOWN)) client_ready = 0;
 
         circlePosition pos;
         hidCircleRead(&pos);
@@ -109,8 +109,8 @@ int main(int argc, char **argv)
 		printf("\x1b[5;1HCirclePad position:");
 		printf("\x1b[6;1H%04d; %04d", pos.dx, pos.dy);
         printf("\x1b[25;1HVer. %s", APP_VERSION);
-        printf("\x1b[29;17HStart   | exit");
-		printf("\x1b[30;17HSelect  | Reset Client");
+        printf("\x1b[29;17HStart+R+DOWN   | exit");
+		printf("\x1b[30;17HSelect+R+DOWN  | Reset Client");
 
 		if (kDown != kDownOld || kHeld != kHeldOld || kUp != kUpOld)
 		{
