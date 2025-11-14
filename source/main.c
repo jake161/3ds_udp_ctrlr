@@ -24,6 +24,9 @@ void failExit(const char *fmt, ...);
 
 int main(int argc, char **argv)
 {
+    gfxInitDefault();
+    consoleInit(GFX_TOP, NULL);
+
 	char keysNames[32][32] = {
 		"KEY_A", "KEY_B", "KEY_SELECT", "KEY_START",
 		"KEY_DRIGHT", "KEY_DLEFT", "KEY_DUP", "KEY_DDOWN",
@@ -49,7 +52,7 @@ int main(int argc, char **argv)
 	}
 
     sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if(sock < 0) failExit("\x1b[1;1Hsocket: %d %s", errno, strerror(errno));
+    if(sock < 0) failExit("\x1b[1;1Hsocket: %d %s\n\n -erm... is the wifi connected?\n", errno, strerror(errno));
 
     memset(&server, 0, sizeof(server));
     server.sin_family = AF_INET;
@@ -67,9 +70,6 @@ int main(int argc, char **argv)
 	printf("\x1b[25;1HVer. %s", APP_VERSION);
     printf("\x1b[29;17HStart+R+DOWN   | exit");
 	printf("\x1b[30;17HSelect+R+DOWN  | Reset Client");
-
-    gfxInitDefault();
-    consoleInit(GFX_TOP, NULL);
 
 	u32 kDownOld = 0, kHeldOld = 0, kUpOld = 0;
 
