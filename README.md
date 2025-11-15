@@ -9,7 +9,8 @@ The goal of this project is to send button inputs from the 3DS via UDP to some a
 ## Usage
 1. Ensure your 3DS is connected to WiFi.
 2. Start UDP Ctrlr via the homebrew menu. This will automatically start a server on your 3DS's ip at port 5000.
-3. Run the `udp_ctrlr.py` companion script:
+3. See this link for [vgamepad specific setup](https://github.com/yannbouteiller/vgamepad/blob/main/readme/linux.md)
+4. Run the `udp_ctrlr.py` companion script:
 
     ```sh
     python udp_ctrlr.py <YOUR 3DS IP> 5000
